@@ -6,7 +6,7 @@ package queue;
  * @param <E> the type of elements in the queue
  * @param <T> the type of the priority
  */
-public interface MyPriorityQueue<E, T> {
+public interface MyPriorityQueue<E, T extends Comparable<T>> {
 
     /**
      * Gets the element with the biggest priority and removes it from the queue.

@@ -2,6 +2,7 @@ package queue.impl;
 
 import queue.MyPriorityQueue;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +45,8 @@ public class MyPriorityQueueImpl<E, T extends Comparable<T>> implements MyPriori
                 linkedList.add(linkedList.size(), newNode);
             } else {
                 int i = 0;
-                while (linkedList.get(i).priority.compareTo(priority) > 0) {
+                Iterator<Node> iterator = linkedList.iterator();
+                while (iterator.hasNext() && iterator.next().priority.compareTo(priority) > 0) {
                     i++;
                 }
                 linkedList.add(i, newNode);
