@@ -1,10 +1,18 @@
 package data;
 
-public enum State {
+public class State implements Comparable<State> {
 
-    SORE_THROAT,
-    BROKEN_ARM,
-    BROKEN_LEG,
-    HEART_ATTACK,
-    HALF_DEAD
+    private String illnessName;
+
+    private Integer illnessPriority;
+
+    public State(String illnessName, Integer illnessPriority) {
+        this.illnessName = illnessName;
+        this.illnessPriority = illnessPriority;
+    }
+
+    @Override
+    public int compareTo(State o) {
+        return o.illnessPriority.compareTo(this.illnessPriority);
+    }
 }

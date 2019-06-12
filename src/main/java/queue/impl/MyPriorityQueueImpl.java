@@ -2,16 +2,14 @@ package queue.impl;
 
 import queue.MyPriorityQueue;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class MyPriorityQueueImpl<E, T extends Comparable<T>> implements MyPriorityQueue<E, T> {
 
-    private List<Node> linkedList = new LinkedList<>();
+    private ConcurrentSkipListMap<Node, T> concurrentSkipListMap = new ConcurrentSkipListMap<>();
 
-    private class Node {
+    private class Node implements Comparable<Node> {
 
         E nodeValue;
 
@@ -21,14 +19,24 @@ public class MyPriorityQueueImpl<E, T extends Comparable<T>> implements MyPriori
             this.nodeValue = nodeValue;
             this.priority = priority;
         }
+
+        @Override
+        public int compareTo(Node o) {
+            if (o.nodeValue.equals(nodeValue)) {
+                return 0;
+            }
+            if (o.priority.compareTo(priority) != 0) {
+                return o.priority.compareTo(priority);
+            }
+            return 1;
+        }
     }
 
     @Override
-    public synchronized E pop() {
-        if (linkedList.size() != 0) {
-            E nodeValue = linkedList.get(0).nodeValue;
-            linkedList.remove(linkedList.get(0));
-            return nodeValue;
+    public E pop() {
+        Node nodeToReturn = concurrentSkipListMap.keySet().pollFirst();
+        if (nodeToReturn != null) {
+            return nodeToReturn.nodeValue;
         }
         return null;
     }
@@ -36,31 +44,17 @@ public class MyPriorityQueueImpl<E, T extends Comparable<T>> implements MyPriori
     @Override
     public void add(E element, T priority) {
         Node newNode = new Node(element, priority);
-        synchronized (this) {
-            if (linkedList.size() == 0) {
-                linkedList.add(newNode);
-            } else if (linkedList.get(0).priority.compareTo(priority) < 0) {
-                linkedList.add(0, newNode);
-            } else if (linkedList.get(linkedList.size() - 1).priority.compareTo(priority) > 0) {
-                linkedList.add(linkedList.size(), newNode);
-            } else {
-                int i = 0;
-                Iterator<Node> iterator = linkedList.iterator();
-                while (iterator.hasNext() && iterator.next().priority.compareTo(priority) > 0) {
-                    i++;
-                }
-                linkedList.add(i, newNode);
-            }
-        }
+        concurrentSkipListMap.put(newNode, priority);
     }
 
     @Override
-    public synchronized void update(E element, T priority) {
-        Optional<Node> optionalNode = linkedList.stream()
+    public void update(E element, T priority) {
+        Optional<Node> optionalNode = concurrentSkipListMap.keySet().stream()
                 .filter(node -> element.equals(node.nodeValue))
                 .findAny();
+
         optionalNode.ifPresent(node -> {
-            linkedList.remove(node);
+            concurrentSkipListMap.remove(node);
             add(element, priority);
         });
     }

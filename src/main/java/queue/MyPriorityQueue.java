@@ -10,7 +10,7 @@ public interface MyPriorityQueue<E, T extends Comparable<T>> {
 
     /**
      * Gets the element with the biggest priority and removes it from the queue.
-     * The complexity is O(1).
+     * The complexity is O(log n).
      *
      * @return the element with the biggest priority
      */
@@ -18,7 +18,7 @@ public interface MyPriorityQueue<E, T extends Comparable<T>> {
 
     /**
      * Adds a new element with the specified priority which has to be comparable.
-     * The complexity is O(n).
+     * The complexity is O(log n).
      *
      * @param element  the type of the element
      * @param priority the type of the priority
@@ -27,7 +27,7 @@ public interface MyPriorityQueue<E, T extends Comparable<T>> {
 
     /**
      * Updates a certain element's priority and reorders the queue.
-     * The complexity is O(n).
+     * The complexity is O(log n).
      *
      * @param element  the type of the element
      * @param priority the type of the priority

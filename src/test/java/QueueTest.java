@@ -23,9 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class QueueTest {
 
-    @Test
     @RepeatedTest(100)
-    public void pop_1000Threads100Times_sizeMatches() throws ExecutionException, InterruptedException {
+    public void pop_100Threads100Times_sizeMatches() throws ExecutionException, InterruptedException {
         //given
         MyPriorityQueue<Patient, State> myPriorityQueue = new MyPriorityQueueImpl<>();
         Patient pat1 = new Patient("Pat1");
@@ -34,12 +33,12 @@ public class QueueTest {
         Patient pat4 = new Patient("Pat4");
         Patient pat5 = new Patient("Pat5");
         Patient pat6 = new Patient("Pat6");
-        myPriorityQueue.add(pat1, State.BROKEN_LEG);
-        myPriorityQueue.add(pat2, State.SORE_THROAT);
-        myPriorityQueue.add(pat3, State.HALF_DEAD);
-        myPriorityQueue.add(pat4, State.BROKEN_LEG);
-        myPriorityQueue.add(pat5, State.HEART_ATTACK);
-        myPriorityQueue.add(pat6, State.SORE_THROAT);
+        myPriorityQueue.add(pat1, new State("Broken leg", 10));
+        myPriorityQueue.add(pat2, new State("Sore throat", 20));
+        myPriorityQueue.add(pat3, new State("Half dead", 1));
+        myPriorityQueue.add(pat4, new State("Broken leg", 10));
+        myPriorityQueue.add(pat5, new State("Heart attack", 5));
+        myPriorityQueue.add(pat6, new State("Sore throat", 20));
 
         int threads = 100;
         ExecutorService service =
@@ -52,6 +51,11 @@ public class QueueTest {
             futures.add(service.submit(myPriorityQueue::pop));
         }
         service.shutdown();
+        try {
+            service.awaitTermination(100, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         List<Patient> patients = new ArrayList<>();
         for (Future<Patient> f : futures) {
             Patient patient = f.get();
@@ -64,12 +68,16 @@ public class QueueTest {
         assertEquals(6, patients.size());
     }
 
-    @Test
     @RepeatedTest(100)
     public void add_100Threads100Times_everyPatientIsAdded() {
         //given
         MyPriorityQueue<Patient, State> myPriorityQueue = new MyPriorityQueueImpl<>();
-        List<State> states = List.of(State.values());
+        List<State> states = new ArrayList<>();
+        states.add(new State("Broken leg", 10));
+        states.add(new State("Sore throat", 20));
+        states.add(new State("Half dead", 1));
+        states.add(new State("Broken arm", 15));
+        states.add(new State("Heart attack", 5));
         int stateSize = states.size();
         Random random = new Random();
         int threads = 100;
@@ -87,7 +95,7 @@ public class QueueTest {
         }
         service.shutdown();
         try {
-            service.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            service.awaitTermination(100, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -115,32 +123,97 @@ public class QueueTest {
         Patient pat6 = new Patient("Pat6");
 
         //when
-        myPriorityQueue.add(pat1, State.SORE_THROAT);
-        myPriorityQueue.add(pat2, State.HEART_ATTACK);
+        myPriorityQueue.add(pat1, new State("Sore throat", 20));
+        myPriorityQueue.add(pat2, new State("Heart attack", 5));
         Patient pop1 = myPriorityQueue.pop();
-        myPriorityQueue.add(pat3, State.HALF_DEAD);
+        myPriorityQueue.add(pat3, new State("Half dead", 1));
         Patient pop2 = myPriorityQueue.pop();
-        myPriorityQueue.add(pat4, State.BROKEN_LEG);
-        myPriorityQueue.update(pat1, State.HEART_ATTACK);
+        myPriorityQueue.add(pat4, new State("Broken leg", 10));
+        myPriorityQueue.update(pat1, new State("Heart attack", 5));
         Patient pop3 = myPriorityQueue.pop();
-        myPriorityQueue.add(pat5, State.SORE_THROAT);
-        myPriorityQueue.update(pat4, State.BROKEN_ARM);
-        myPriorityQueue.add(pat6, State.HALF_DEAD);
+        myPriorityQueue.add(pat5, new State("Sore throat", 20));
+        myPriorityQueue.update(pat4, new State("Broken arm", 15));
+        myPriorityQueue.add(pat6, new State("Half dead", 1));
         Patient pop4 = myPriorityQueue.pop();
         Patient pop5 = myPriorityQueue.pop();
         Patient pop6 = myPriorityQueue.pop();
 
-        //then
-        assertEquals(pat1.getName(), pop3.getName());
-        assertEquals(pat2.getName(), pop1.getName());
-        assertEquals(pat3.getName(), pop2.getName());
-        assertEquals(pat4.getName(), pop5.getName());
-        assertEquals(pat5.getName(), pop6.getName());
-        assertEquals(pat6.getName(), pop4.getName());
+        //then order is pat2, pat3, pat1, pat6, pat4, pat5
+        assertEquals(pat1, pop3);
+        assertEquals(pat2, pop1);
+        assertEquals(pat3, pop2);
+        assertEquals(pat4, pop5);
+        assertEquals(pat5, pop6);
+        assertEquals(pat6, pop4);
     }
 
     @Test
-    public void priorityQueue_noPatients_expectedNull() {
+    public void priorityQueue_addPatient_poppedPatientIsTheSame() {
+        //given
+        MyPriorityQueue<Patient, State> myPriorityQueue = new MyPriorityQueueImpl<>();
+        Patient patient = new Patient("Patient");
+        myPriorityQueue.add(patient, new State("Broken leg", 10));
+
+        //when
+        Patient poppedPatient = myPriorityQueue.pop();
+
+        //then
+        assertEquals(patient, poppedPatient);
+    }
+
+    @Test
+    public void priorityQueue_addPatientTwice_poppedOnce() {
+        //given
+        MyPriorityQueue<Patient, State> myPriorityQueue = new MyPriorityQueueImpl<>();
+        Patient patient = new Patient("Patient");
+        myPriorityQueue.add(patient, new State("Broken leg", 10));
+        myPriorityQueue.add(patient, new State("Broken leg", 10));
+
+        //when
+        Patient poppedPatient1 = myPriorityQueue.pop();
+        Patient poppedPatient2 = myPriorityQueue.pop();
+
+        //then
+        assertEquals(patient, poppedPatient1);
+        assertNull(poppedPatient2);
+    }
+
+    @Test
+    public void priorityQueue_addPatientTwiceDifferentState_poppedOnce() {
+        //given
+        MyPriorityQueue<Patient, State> myPriorityQueue = new MyPriorityQueueImpl<>();
+        Patient patient = new Patient("Patient");
+        myPriorityQueue.add(patient, new State("Broken leg", 10));
+        myPriorityQueue.add(patient, new State("Heart attack", 5));
+
+        //when
+        Patient poppedPatient1 = myPriorityQueue.pop();
+        Patient poppedPatient2 = myPriorityQueue.pop();
+
+        //then
+        assertEquals(patient, poppedPatient1);
+        assertNull(poppedPatient2);
+    }
+
+    @Test
+    public void priorityQueue_update_patientStateUpdated() {
+        //given
+        MyPriorityQueue<Patient, State> myPriorityQueue = new MyPriorityQueueImpl<>();
+        Patient patient1 = new Patient("Patient1");
+        Patient patient2 = new Patient("Patient2");
+        myPriorityQueue.add(patient1, new State("Broken leg", 10));
+        myPriorityQueue.add(patient2, new State("Heart attack", 5));
+
+        //when
+        myPriorityQueue.update(patient1, new State("Something more severe than heart attack", 1));
+        Patient poppedPatient = myPriorityQueue.pop();
+
+        //then patient1 gets popped instead of patient2 because of the update
+        assertEquals(patient1.getName(), poppedPatient.getName());
+    }
+
+    @Test
+    public void priorityQueue_noPatients_poppedPatientIsNull() {
         //given
         MyPriorityQueue<Patient, State> myPriorityQueue = new MyPriorityQueueImpl<>();
 
@@ -163,25 +236,25 @@ public class QueueTest {
         Patient pat6 = new Patient("Pat6");
 
         //when
-        myPriorityQueue.add(pat1, State.HEART_ATTACK);
-        myPriorityQueue.add(pat2, State.HEART_ATTACK);
-        myPriorityQueue.add(pat3, State.HALF_DEAD);
-        myPriorityQueue.add(pat4, State.SORE_THROAT);
-        myPriorityQueue.add(pat5, State.SORE_THROAT);
-        myPriorityQueue.add(pat6, State.HALF_DEAD);
+        myPriorityQueue.add(pat1, new State("Heart attack", 5));
+        myPriorityQueue.add(pat2, new State("Heart attack", 5));
+        myPriorityQueue.add(pat3, new State("Half dead", 1));
+        myPriorityQueue.add(pat4, new State("Sore throat", 20));
+        myPriorityQueue.add(pat5, new State("Sore throat", 20));
+        myPriorityQueue.add(pat6, new State("Half dead", 1));
         Patient pop1 = myPriorityQueue.pop();
         Patient pop2 = myPriorityQueue.pop();
-        Patient pop4 = myPriorityQueue.pop();
         Patient pop3 = myPriorityQueue.pop();
+        Patient pop4 = myPriorityQueue.pop();
         Patient pop5 = myPriorityQueue.pop();
         Patient pop6 = myPriorityQueue.pop();
 
-        //then
-        assertEquals(pat1.getName(), pop3.getName());
-        assertEquals(pat2.getName(), pop4.getName());
-        assertEquals(pat6.getName(), pop1.getName());
-        assertEquals(pat5.getName(), pop5.getName());
-        assertEquals(pat4.getName(), pop6.getName());
-        assertEquals(pat3.getName(), pop2.getName());
+        //then order is pat3, pat6, pat1, pat2, pat4, pat5
+        assertEquals(pat1, pop3);
+        assertEquals(pat2, pop4);
+        assertEquals(pat6, pop2);
+        assertEquals(pat5, pop6);
+        assertEquals(pat4, pop5);
+        assertEquals(pat3, pop1);
     }
 }
